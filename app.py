@@ -1795,7 +1795,8 @@ if "Price Analysis" in active_sections:
                             ))
 
                     fig.update_layout(
-                        title=dict(text=tr("price_chart_title"), font=dict(family="IBM Plex Mono", size=15, color="#1a5fa0")),
+                        title=dict(text=tr("price_chart_title"), font=dict(family="IBM Plex Mono", size=15, color="#1a5fa0"),
+                                   x=0.5, xanchor="center", y=1.0, yanchor="bottom"),
                         paper_bgcolor="#f5f4f0", plot_bgcolor="#eceae4",
                         font=dict(family="IBM Plex Sans", color="#1a1a1a", size=13),
                         xaxis=dict(
@@ -1823,8 +1824,8 @@ if "Price Analysis" in active_sections:
                         hovermode="x unified",
                         hoverlabel=dict(bgcolor="#ffffff", bordercolor="#c8c4bc",
                                         font=dict(family="IBM Plex Mono", size=12, color="#1a1a1a")),
-                        margin=dict(t=60, b=60, l=60, r=20),
-                        height=460,
+                        margin=dict(t=90, b=60, l=60, r=20),
+                        height=490,
                     )
                     # Buttons for 1Y / 5Y / All quick-select via plotly range
                     fig.update_xaxes(
@@ -1839,7 +1840,7 @@ if "Price Analysis" in active_sections:
                             bgcolor="#eceae4", activecolor="#1a5fa0",
                             font=dict(color="#1a1a1a", size=11, family="IBM Plex Mono"),
                             bordercolor="#c8c4bc",
-                            x=0, y=1.08,
+                            x=0, y=1.13,
                         )
                     )
                     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": True})
