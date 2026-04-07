@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Streamlit secrets (never commit)
+.streamlit/secrets.toml
+
+# Claude Code local config
+.claude/
+
+# Temporary Excel lock files
+~$*.xlsx
+~$*.xls
+
+# Data files (upload via the app, don't commit)
+*.xlsx
+*.xls
+
+# Environment variables
+*.env
+.env
+
+# Temporary files
+*.tmp
+*.bak
