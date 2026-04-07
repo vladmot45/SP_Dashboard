@@ -2350,9 +2350,20 @@ if "Broker Report" in active_sections:
             # ── Excel export ───────────────────────────────────────────────
             sub("EXPORT")
             fname = f"Broker_Report_{datetime.now().strftime('%B_%Y')}.xlsx"
-            wagi_src = df_wagi_full if isinstance(df_wagi_full, pd.DataFrame) else None
+            wagi_for_excel = df_wagi_full if isinstance(df_wagi_full, pd.DataFrame) else None
+            # Cap wagi to months up to and including the selected delivery month,
+            # so the Excel never shows columns beyond the chosen period.
+            if wagi_for_excel is not None and not wagi_for_excel.empty:
+                if sel_br_year != "All" or sel_br_month_num is not None:
+                    cutoff_year  = int(sel_br_year) if sel_br_year != "All" else 9999
+                    cutoff_month = sel_br_month_num if sel_br_month_num is not None else 12
+                    cutoff = pd.Period(year=cutoff_year, month=cutoff_month, freq="M")
+                    _wagi_periods = wagi_for_excel["Date_WZ"].dt.to_period("M")
+                    wagi_for_excel = wagi_for_excel[
+                        _wagi_periods.apply(lambda p: pd.notna(p) and p <= cutoff)
+                    ]
             try:
-                xl_bytes = _build_broker_excel(df_br, wagi_src, C)
+                xl_bytes = _build_broker_excel(df_br, wagi_for_excel, C)
                 st.download_button(
                     label    = tr("dl_broker"),
                     data     = xl_bytes,
