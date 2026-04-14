@@ -417,7 +417,7 @@ def _build_broker_excel(df_br, df_wagi, C):
             str(row.get(C.get("commission",""), "") or "").replace(",", "."), errors="coerce"
         )
         sold     = pd.to_numeric(row.get(C["sold_mt"],    0), errors="coerce") or 0
-        deliv_mt = pd.to_numeric(row.get("_delivery_mt",  0), errors="coerce") or 0
+        deliv_mt = pd.to_numeric(row.get("_total_delivery_mt", row.get("_delivery_mt", 0)), errors="coerce") or 0
         amt_due  = round(float(row["_commission_eur"]), 2) if pd.notna(row.get("_commission_eur")) else None
 
         # Date as dd/mm/yyyy string only
@@ -2241,7 +2241,7 @@ if "Broker Report" in active_sections:
                     ]
                     keys_in_month = set(wagi_month["_contract_key"].dropna().astype(str))
                     df_br = df_br[df_br["_contract_key"].isin(keys_in_month)]
-                    # Delivery MT = actual MT delivered in the selected month per contract
+                    # _delivery_mt = MT in selected month only → commission base
                     mt_in_month = (
                         wagi_month.groupby("_contract_key")["Qty_MT"].sum()
                         .rename("_delivery_mt").reset_index()
@@ -2249,9 +2249,20 @@ if "Broker Report" in active_sections:
                     mt_in_month["_contract_key"] = mt_in_month["_contract_key"].astype(str)
                     df_br = df_br.merge(mt_in_month, on="_contract_key", how="left")
                     df_br["_delivery_mt"] = df_br["_delivery_mt"].fillna(0)
+                    # _total_delivery_mt = sum of all deliveries for the contract → display column
+                    mt_total = (
+                        wagi_src[wagi_src["_contract_key"].astype(str).isin(keys_in_month)]
+                        .groupby("_contract_key")["Qty_MT"].sum()
+                        .rename("_total_delivery_mt").reset_index()
+                    )
+                    mt_total["_contract_key"] = mt_total["_contract_key"].astype(str)
+                    df_br = df_br.merge(mt_total, on="_contract_key", how="left")
+                    df_br["_total_delivery_mt"] = df_br["_total_delivery_mt"].fillna(0)
             if "_delivery_mt" not in df_br.columns:
-                # "All" — use total issued MT as the commission base
+                # "All" — use total issued MT as both commission base and display
                 df_br["_delivery_mt"] = df_br[C["issued_mt"]]
+            if "_total_delivery_mt" not in df_br.columns:
+                df_br["_total_delivery_mt"] = df_br["_delivery_mt"]
 
             # Amount due = delivered weight in period × commission rate
             df_br["_commission_eur"] = df_br[C["commission"]] * df_br["_delivery_mt"]
@@ -2266,7 +2277,8 @@ if "Broker Report" in active_sections:
                                if c in df_br.columns]
                 _first_cols = [c for c in [C["date"], C["buyer"], C["goods"], C["broker"],
                                            C["commission"], C["currency"], "_buyer_abbrev",
-                                           "_contract_key", "_delivery_mt", "_commission_eur"]
+                                           "_contract_key", "_delivery_mt", "_total_delivery_mt",
+                                           "_commission_eur"]
                                if c in df_br.columns]
                 _agg = {c: "sum"   for c in _sum_cols}
                 _agg.update({c: "first" for c in _first_cols})
@@ -2282,7 +2294,7 @@ if "Broker Report" in active_sections:
             broker_summary = df_br.assign(_broker=broker_col).groupby("_broker").agg(
                 Contracts      =(C["contract"],   "count"),
                 Sold_MT        =(C["sold_mt"],    "sum"),
-                Delivered_MT   =("_delivery_mt",  "sum"),
+                Delivered_MT   =("_total_delivery_mt", "sum"),
                 Avg_Rate       =(C["commission"], "mean"),
                 Commission_EUR =("_commission_eur","sum"),
             ).reset_index().rename(columns={"_broker": "Broker"})
@@ -2327,7 +2339,7 @@ if "Broker Report" in active_sections:
                 "Date", "Contract", "Client", "Goods",
                 "Sold (MT)", "Broker", tr("commission_rate"), "Currency",
             ]
-            detail[delivered_label]  = df_br["_delivery_mt"].values
+            detail[delivered_label]  = df_br["_total_delivery_mt"].values
             detail[tr("amount_due")] = df_br["_commission_eur"].values
             detail["Date"] = pd.to_datetime(detail["Date"], errors="coerce").dt.strftime("%d/%m/%Y")
             detail = detail[detail["Sold (MT)"] > 0].sort_values(["Broker", "Date"])
